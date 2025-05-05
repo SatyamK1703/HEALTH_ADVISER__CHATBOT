@@ -9,8 +9,10 @@ function App() {
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isListening, setIsListening] = useState(false);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
+  const recognitionRef = useRef(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -24,6 +26,53 @@ function App() {
     // Focus the input field when the component mounts
     inputRef.current?.focus();
   }, []);
+
+  // Initialize speech recognition
+  useEffect(() => {
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      recognitionRef.current = new SpeechRecognition();
+      recognitionRef.current.continuous = false;
+      recognitionRef.current.interimResults = false;
+      recognitionRef.current.lang = 'en-US';
+
+      recognitionRef.current.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        setInput(prev => prev + transcript);
+        setIsListening(false);
+      };
+
+      recognitionRef.current.onerror = (event) => {
+        console.error('Speech recognition error', event.error);
+        setIsListening(false);
+      };
+
+      recognitionRef.current.onend = () => {
+        setIsListening(false);
+      };
+    }
+
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.abort();
+      }
+    };
+  }, []);
+
+  const toggleListening = () => {
+    if (!recognitionRef.current) {
+      alert('Speech recognition is not supported in your browser.');
+      return;
+    }
+
+    if (isListening) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+    } else {
+      recognitionRef.current.start();
+      setIsListening(true);
+    }
+  };
 
   const handleSend = async (e) => {
     e.preventDefault();
@@ -202,11 +251,26 @@ function App() {
             onChange={(e) => setInput(e.target.value)}
             placeholder="Type your health question here..."
             className="flex-1 border border-gray-300 rounded-l-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-            disabled={isLoading}
+            disabled={isLoading || isListening}
           />
+          
+          {/* Microphone Button */}
+          <button
+            type="button"
+            onClick={toggleListening}
+            disabled={isLoading}
+            className={`px-4 py-3 ${isListening ? 'bg-red-500 hover:bg-red-600' : 'bg-blue-500 hover:bg-blue-600'} text-white transition-colors disabled:bg-gray-300 flex items-center justify-center`}
+            title={isListening ? "Stop listening" : "Start voice input"}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z" clipRule="evenodd" />
+            </svg>
+          </button>
+          
+          {/* Send Button */}
           <button
             type="submit"
-            disabled={isLoading || input.trim() === ''}
+            disabled={isLoading || input.trim() === '' || isListening}
             className="bg-teal-500 hover:bg-teal-600 text-white px-6 py-3 rounded-r-lg transition-colors disabled:bg-teal-300 flex items-center justify-center"
           >
             {isLoading ? (
@@ -218,6 +282,15 @@ function App() {
             )}
           </button>
         </div>
+        
+        {/* Listening indicator */}
+        {isListening && (
+          <div className="container mx-auto max-w-4xl mt-2 text-sm text-teal-600 flex items-center">
+            <div className="w-2 h-2 bg-red-500 rounded-full mr-2 animate-pulse"></div>
+            Listening... Speak now
+          </div>
+        )}
+        
         <div className="container mx-auto max-w-4xl mt-2 text-xs text-gray-500 text-center">
           Not a substitute for professional medical advice. For emergencies, please contact your healthcare provider.
         </div>
@@ -227,6 +300,7 @@ function App() {
 }
 
 export default App;
+
 
 
 
