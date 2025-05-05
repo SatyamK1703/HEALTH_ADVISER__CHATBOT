@@ -11,7 +11,7 @@ const REQUEST_TIMEOUT = 30000; // 30 seconds timeout
 
 // Middleware
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://127.0.0.1:5173'], // Add your frontend URL
+  origin: ['http://localhost:5173', 'http://127.0.0.1:5173', 'https://virtual-health-coach.vercel.app'],
   methods: ['GET', 'POST'],
   credentials: true
 }));
@@ -136,6 +136,8 @@ app.post('/api/chat', async (req, res) => {
 app.listen(PORT, () => {
   console.log(`[${new Date().toISOString()}] Server running on port ${PORT}`);
 });
+
+
 
 
 
